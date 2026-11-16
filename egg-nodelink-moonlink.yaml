@@ -1,0 +1,284 @@
+_comment: 'CUSTOM PELICAN EGG: NODELINK + MOONLINK.JS MUSIC BOT'
+meta:
+  version: PLCN_v3
+  update_url: null
+exported_at: '2026-11-16T04:16:00+00:00'
+name: 'NodeLink + Moonlink MusicBot'
+author: custom@nodelink-moonlink.local
+uuid: f4b8c2a1-9d3e-4f7b-8a1c-3e5d7f9b2a4c
+description: 'All-in-one Discord music bot powered by PerformanC/NodeLink and Ecliptia/moonlink.js with YouTube TV OAuth login on boot.'
+tags:
+  - discord
+  - music
+  - nodelink
+  - moonlink
+features: {  }
+docker_images:
+  'ghcr.io/ptero-eggs/yolks:nodejs_22': 'ghcr.io/ptero-eggs/yolks:nodejs_22'
+  'ghcr.io/pterodactyl/yolks:nodejs_22': 'ghcr.io/pterodactyl/yolks:nodejs_22'
+file_denylist: {  }
+startup_commands:
+  Default: 'bash /home/container/start.sh'
+config:
+  files:
+    bot/.env:
+      parser: file
+      find:
+        'BOT_TOKEN=': 'BOT_TOKEN="{{server.environment.BOT_TOKEN}}"'
+        'BOT_OWNER=': 'BOT_OWNER="{{server.environment.BOT_OWNER}}"'
+        'BOT_PREFIX=': 'BOT_PREFIX="{{server.environment.BOT_PREFIX}}"'
+        'BOT_ALT_PREFIX=': 'BOT_ALT_PREFIX="{{server.environment.BOT_ALT_PREFIX}}"'
+        'BOT_GAME=': 'BOT_GAME="{{server.environment.BOT_GAME}}"'
+        'BOT_STATUS=': 'BOT_STATUS="{{server.environment.BOT_STATUS}}"'
+        'BOT_SONG_STATUS=': 'BOT_SONG_STATUS="{{server.environment.BOT_SONG_STATUS}}"'
+        'BOT_STAY_IN_CHANNEL=': 'BOT_STAY_IN_CHANNEL="{{server.environment.BOT_STAY_IN_CHANNEL}}"'
+        'BOT_ALONE_TIME=': 'BOT_ALONE_TIME="{{server.environment.BOT_ALONE_TIME}}"'
+        'NODELINK_PORT=': 'NODELINK_PORT="{{server.environment.NODELINK_PORT}}"'
+        'NODELINK_PASSWORD=': 'NODELINK_PASSWORD="{{server.environment.NODELINK_PASSWORD}}"'
+        'YT_OAUTH_ENABLED=': 'YT_OAUTH_ENABLED="{{server.environment.YT_OAUTH_ENABLED}}"'
+        'YT_REFRESH_TOKEN=': 'YT_REFRESH_TOKEN="{{server.environment.YT_REFRESH_TOKEN}}"'
+  startup:
+    done: 'Bot is online and connected to NodeLink!'
+  logs: {  }
+  stop: ^C
+scripts:
+  installation:
+    script: |-
+      #!/bin/bash
+      apt-get update
+      apt-get install -y git curl jq python3 make g++
+
+      mkdir -p /mnt/server
+      cd /mnt/server
+
+      echo "========================================="
+      echo " 1/3 Installing PerformanC/NodeLink..."
+      echo "========================================="
+      if [ -d "nodelink/.git" ]; then
+          cd nodelink && git pull && cd ..
+      else
+          rm -rf nodelink
+          git clone https://github.com/PerformanC/NodeLink.git nodelink
+      fi
+
+      cd /mnt/server/nodelink
+      npm install --omit=dev
+
+      # Convert config.default.ts to editable config.js if needed, or copy default
+      if [ -f "config.default.ts" ]; then
+          cp config.default.ts config.ts
+      elif [ -f "config.default.js" ]; then
+          cp config.default.js config.js
+      fi
+
+      echo "========================================="
+      echo " 2/3 Setting up Moonlink.js Discord Bot..."
+      echo "========================================="
+      mkdir -p /mnt/server/bot
+      cd /mnt/server/bot
+
+      cat << 'EOF' > package.json
+      {
+        "name": "nodelink-moonlink-bot",
+        "version": "1.0.0",
+        "type": "module",
+        "main": "index.js",
+        "scripts": {
+          "start": "node index.js"
+        },
+        "dependencies": {
+          "discord.js": "^14.16.3",
+          "dotenv": "^16.4.5",
+          "moonlink.js": "^5.2.0"
+        }
+      }
+      EOF
+
+      npm install
+
+      cat << 'EOF' > .env
+      BOT_TOKEN=""
+      BOT_OWNER=""
+      BOT_PREFIX="@mention"
+      BOT_ALT_PREFIX="NONE"
+      BOT_GAME="DEFAULT"
+      BOT_STATUS="ONLINE"
+      BOT_SONG_STATUS="false"
+      BOT_STAY_IN_CHANNEL="false"
+      BOT_ALONE_TIME="0"
+      NODELINK_PORT="3000"
+      NODELINK_PASSWORD="youshallnotpass"
+      YT_OAUTH_ENABLED="true"
+      YT_REFRESH_TOKEN=""
+      EOF
+
+      cat << 'EOF' > index.js
+      import 'dotenv/config';
+      import {
+        Client,
+        GatewayIntentBits,
+        ActivityType,
+        REST,
+        Routes,
+        SlashCommandBuilder,
+        EmbedBuilder
+      } from 'discord.js';
+      import { Manager } from 'moonlink.js';
+
+      const client = new Client({
+        intents: [
+          GatewayIntentBits.Guilds,
+          GatewayIntentBits.GuildVoiceStates,
+          GatewayIntentBits.GuildMessages,
+          GatewayIntentBits.MessageContent
+        ]
+      });
+
+      const manager = new Manager({
+        nodes: [
+          {
+            host: '127.0.0.1',
+            port: Number(process.env.NODELINK_PORT || 3000),
+            password: process.env.NODELINK_PASSWORD || 'youshallnotpass',
+            secure: false
+          }
+        ],
+        sendPayload: (guildId, payload) => {
+          const guild = client.guilds.cache.get(guildId);
+          if (guild) guild.shard.send(JSON.parse(payload));
+        },
+        autoPlay: true
+      });
+
+      client.on('raw', (packet) => manager.packetUpdate(packet));
+
+      manager.on('nodeCreate', (node) => {
+        console.log(`[NodeLink] Connected to audio node: ${node.host}:${node.port}`);
+        console.log('Bot is online and connected to NodeLink!');
+      });
+
+      manager.on('nodeError', (node, error) => {
+        console.error(`[NodeLink] Node error:`, error.message || error);
+      });
+
+      manager.on('trackStart', (player, track) => {
+        const channel = client.channels.cache.get(player.textChannelId);
+        if (channel) {
+          const embed = new EmbedBuilder()
+            .setColor(0x5865F2)
+            .setTitle('Now Playing')
+            .setDescription(`**[${track.title}](${track.url})**`)
+            .addFields({ name: 'Requested by', value: `<@${track.requestedBy}>`, inline: true });
+          channel.send({ embeds: [embed] }).catch(() => {});
+        }
+        if (process.env.BOT_SONG_STATUS === 'true' && client.user) {
+          client.user.setActivity(track.title, { type: ActivityType.Listening });
+        }
+      });
+
+      manager.on('queueEnd', (player) => {
+        const channel = client.channels.cache.get(player.textChannelId);
+        if (channel) channel.send('Queue finished.').catch(() => {});
+        if (process.env.BOT_STAY_IN_CHANNEL !== 'true') {
+          player.destroy();
+        }
+      });
+
+      const commands = [
+        new SlashCommandBuilder()
+          .setName('play')
+          .setDescription('Play a song or URL')
+          .addStringOption(opt => opt.setName('query').setDescription('Song name or link').setRequired(true)),
+        new SlashCommandBuilder().setName('skip').setDescription('Skip the current song'),
+        new SlashCommandBuilder().setName('stop').setDescription('Stop playback and leave voice channel'),
+        new SlashCommandBuilder().setName('queue').setDescription('Show the current queue')
+      ].map(c => c.toJSON());
+
+      async function handlePlay(guild, member, textChannel, query) {
+        if (!member?.voice?.channel) {
+          return 'Join a voice channel first!';
+        }
+
+        const player = manager.createPlayer({
+          guildId: guild.id,
+          voiceChannelId: member.voice.channel.id,
+          textChannelId: textChannel.id,
+          autoLeave: process.env.BOT_STAY_IN_CHANNEL !== 'true'
+        });
+
+        if (!player.connected) player.connect({ setDeaf: true });
+
+        const res = await manager.search({
+          query,
+          source: 'ytsearch',
+          requester: member.id
+        });
+
+        if (!res || !res.tracks || res.tracks.length === 0) {
+          return 'No tracks found for that query.';
+        }
+
+        if (res.loadType === 'playlist') {
+          for (const track of res.tracks) {
+            player.queue.add(track);
+          }
+          if (!player.playing && !player.paused) player.play();
+          return `Added playlist **${res.playlistInfo?.name || 'Playlist'}** (${res.tracks.length} tracks) to queue.`;
+        } else {
+          const track = res.tracks[0];
+          player.queue.add(track);
+          if (!player.playing && !player.paused) player.play();
+          return `Queued **${track.title}**`;
+        }
+      }
+
+      client.once('ready', async () => {
+        console.log(`[Discord] Logged in as ${client.user.tag}`);
+
+        const statusMap = {
+          ONLINE: 'online',
+          IDLE: 'idle',
+          DND: 'dnd',
+          INVISIBLE: 'invisible'
+        };
+        const status = statusMap[(process.env.BOT_STATUS || 'ONLINE').toUpperCase()] || 'online';
+        const game = process.env.BOT_GAME;
+
+        if (game && game !== 'NONE' && game !== 'DEFAULT') {
+          client.user.setPresence({
+            status,
+            activities: [{ name: game, type: ActivityType.Listening }]
+          });
+        } else {
+          client.user.setStatus(status);
+        }
+
+        manager.init(client.user.id);
+
+        try {
+          const rest = new REST({ version: '10' }).setToken(process.env.BOT_TOKEN);
+          await rest.put(Routes.applicationCommands(client.user.id), { body: commands });
+          console.log('[Discord] Slash commands registered.');
+        } catch (err) {
+          console.error('[Discord] Failed to register slash commands:', err.message);
+        }
+      });
+
+      client.on('interactionCreate', async (interaction) => {
+        if (!interaction.isChatInputCommand()) return;
+        const player = manager.getPlayer(interaction.guildId);
+
+        if (interaction.commandName === 'play') {
+          await interaction.deferReply();
+          const query = interaction.options.getString('query', true);
+          const msg = await handlePlay(interaction.guild, interaction.member, interaction.channel, query);
+          return interaction.editReply(msg);
+        }
+
+        if (interaction.commandName === 'skip') {
+          if (!player) return interaction.reply({ content: 'Nothing is playing.', ephemeral: true });
+          player.skip();
+          return interaction.reply('Skipped current track.');
+        }
+
+        if (interaction.commandName === 'stop') {
