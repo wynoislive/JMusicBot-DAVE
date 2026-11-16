@@ -32,9 +32,9 @@ import com.sedmelluq.discord.lavaplayer.source.vimeo.VimeoAudioSourceManager;
 import com.sedmelluq.discord.lavaplayer.track.playback.NonAllocatingAudioFrameBuffer;
 import dev.lavalink.youtube.YoutubeAudioSourceManager;
 import dev.lavalink.youtube.YoutubeSourceOptions;
+import dev.lavalink.youtube.clients.AndroidMusic;
 import dev.lavalink.youtube.clients.AndroidVr;
 import dev.lavalink.youtube.clients.Music;
-import dev.lavalink.youtube.clients.Tv;
 import dev.lavalink.youtube.clients.TvHtml5Simply;
 import dev.lavalink.youtube.clients.Web;
 import dev.lavalink.youtube.clients.WebEmbedded;
@@ -81,10 +81,10 @@ public class PlayerManager extends DefaultAudioPlayerManager
         }
 
         Client[] clients = new Client[] {
-            new Tv(),
+            new CustomAndroidVr(),
+            new CustomAndroidMusic(),
+            new CustomTvHtml5Simply(),
             new Music(),
-            new TvHtml5Simply(),
-            new AndroidVr(),
             new Web(),
             new WebEmbedded()
         };
@@ -158,5 +158,26 @@ public class PlayerManager extends DefaultAudioPlayerManager
         else
             handler = (AudioHandler) guild.getAudioManager().getSendingHandler();
         return handler;
+    }
+
+    public static class CustomAndroidVr extends AndroidVr {
+        @Override
+        public boolean supportsOAuth() {
+            return true;
+        }
+    }
+
+    public static class CustomAndroidMusic extends AndroidMusic {
+        @Override
+        public boolean supportsOAuth() {
+            return true;
+        }
+    }
+
+    public static class CustomTvHtml5Simply extends TvHtml5Simply {
+        @Override
+        public boolean supportsOAuth() {
+            return true;
+        }
     }
 }
