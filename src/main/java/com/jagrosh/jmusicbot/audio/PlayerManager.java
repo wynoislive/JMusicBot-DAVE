@@ -34,6 +34,7 @@ import dev.lavalink.youtube.YoutubeAudioSourceManager;
 import dev.lavalink.youtube.YoutubeSourceOptions;
 import dev.lavalink.youtube.clients.AndroidVr;
 import dev.lavalink.youtube.clients.Music;
+import dev.lavalink.youtube.clients.Tv;
 import dev.lavalink.youtube.clients.TvHtml5Simply;
 import dev.lavalink.youtube.clients.Web;
 import dev.lavalink.youtube.clients.WebEmbedded;
@@ -71,11 +72,16 @@ public class PlayerManager extends DefaultAudioPlayerManager
         options.setAllowSearch(true);
         String remoteCipherUrl = bot.getConfig().getRemoteCipherUrl();
         if (remoteCipherUrl != null && !remoteCipherUrl.trim().isEmpty()) {
-            options.setRemoteCipher(remoteCipherUrl.trim(), null, "JMusicBot-DAVE");
-            LoggerFactory.getLogger("JMusicBot").info("YouTube Remote Cipher: Configured with endpoint " + remoteCipherUrl.trim());
+            if (remoteCipherUrl.contains("kikkia.dev")) {
+                LoggerFactory.getLogger("JMusicBot").warn("YouTube Remote Cipher: kikkia.dev is currently unreachable. Falling back to local cipher manager.");
+            } else {
+                options.setRemoteCipher(remoteCipherUrl.trim(), null, "JMusicBot-DAVE");
+                LoggerFactory.getLogger("JMusicBot").info("YouTube Remote Cipher: Configured with endpoint " + remoteCipherUrl.trim());
+            }
         }
 
         Client[] clients = new Client[] {
+            new Tv(),
             new Music(),
             new TvHtml5Simply(),
             new AndroidVr(),

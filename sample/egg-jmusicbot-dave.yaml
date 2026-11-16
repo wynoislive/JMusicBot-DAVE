@@ -98,7 +98,7 @@ scripts:
             'eval = false' \
             'useytoauth = true' \
             'ytoauth = ""' \
-            'remotecipherurl = "https://kikkia.dev"' \
+            'remotecipherurl = ""' \
             '/// END OF JMUSICBOT CONFIG ///' > config.txt
       fi
 
@@ -157,10 +157,10 @@ variables:
     name: 'Remote Cipher Endpoint'
     description: 'Remote endpoint to decrypt restricted YouTube player signatures. Automatically falls back to local cipher solving if unavailable.'
     env_variable: REMOTE_CIPHER_URL
-    default_value: 'https://kikkia.dev'
+    default_value: ''
     user_viewable: true
     user_editable: true
-    rules: 'required|string'
+    rules: 'nullable|string'
   -
     sort: 7
     name: 'GitHub Repository for Updates'
