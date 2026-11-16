@@ -29,12 +29,15 @@ import com.sedmelluq.discord.lavaplayer.source.nico.NicoAudioSourceManager;
 import com.sedmelluq.discord.lavaplayer.source.soundcloud.SoundCloudAudioSourceManager;
 import com.sedmelluq.discord.lavaplayer.source.twitch.TwitchStreamAudioSourceManager;
 import com.sedmelluq.discord.lavaplayer.source.vimeo.VimeoAudioSourceManager;
+import com.sedmelluq.discord.lavaplayer.tools.io.HttpInterface;
 import com.sedmelluq.discord.lavaplayer.track.playback.NonAllocatingAudioFrameBuffer;
 import dev.lavalink.youtube.YoutubeAudioSourceManager;
 import dev.lavalink.youtube.YoutubeSourceOptions;
 import dev.lavalink.youtube.clients.AndroidMusic;
 import dev.lavalink.youtube.clients.AndroidVr;
+import dev.lavalink.youtube.clients.ClientConfig;
 import dev.lavalink.youtube.clients.Music;
+import dev.lavalink.youtube.clients.Tv;
 import dev.lavalink.youtube.clients.TvHtml5Simply;
 import dev.lavalink.youtube.clients.Web;
 import dev.lavalink.youtube.clients.WebEmbedded;
@@ -80,11 +83,18 @@ public class PlayerManager extends DefaultAudioPlayerManager
             }
         }
 
+        // Patch static BASE_CONFIG on Tv to bypass Cobalt User-Agent filtering (PR #233)
+        Tv.BASE_CONFIG = new ClientConfig()
+            .withClientName("TVHTML5")
+            .withUserAgent("Mozilla/5.0 (PlayStation; PlayStation 4/12.00) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 Safari/605.1.15")
+            .withClientField("clientVersion", "7.20250319.10.00");
+
         Client[] clients = new Client[] {
-            new CustomAndroidVr(),
-            new CustomAndroidMusic(),
-            new CustomTvHtml5Simply(),
+            new PatchedTv(),
+            new SamsungTv(),
             new Music(),
+            new TvHtml5Simply(),
+            new AndroidVr(),
             new Web(),
             new WebEmbedded()
         };
@@ -160,21 +170,38 @@ public class PlayerManager extends DefaultAudioPlayerManager
         return handler;
     }
 
-    public static class CustomAndroidVr extends AndroidVr {
+    public static class PatchedTv extends Tv {
+        public static final ClientConfig PS4_CONFIG = new ClientConfig()
+            .withClientName("TVHTML5")
+            .withUserAgent("Mozilla/5.0 (PlayStation; PlayStation 4/12.00) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 Safari/605.1.15")
+            .withClientField("clientVersion", "7.20250319.10.00");
+
+        @Override
+        public ClientConfig getBaseClientConfig(HttpInterface httpInterface) {
+            return PS4_CONFIG.copy();
+        }
+
         @Override
         public boolean supportsOAuth() {
             return true;
         }
     }
 
-    public static class CustomAndroidMusic extends AndroidMusic {
-        @Override
-        public boolean supportsOAuth() {
-            return true;
-        }
-    }
+    public static class SamsungTv extends Tv {
+        public static final ClientConfig SAMSUNG_CONFIG = new ClientConfig()
+            .withClientName("TVHTML5")
+            .withClientField("clientVersion", "5.20260707")
+            .withClientField("deviceMake", "Samsung")
+            .withClientField("deviceModel", "UKS9800")
+            .withClientField("osName", "Tizen")
+            .withClientField("osVersion", "2.4")
+            .withUserAgent("Mozilla/5.0 (SMART-TV; Linux; Tizen 2.4.0) AppleWebKit/538.1 (KHTML, like Gecko) Version/2.4.0 TV Safari/538.1");
 
-    public static class CustomTvHtml5Simply extends TvHtml5Simply {
+        @Override
+        public ClientConfig getBaseClientConfig(HttpInterface httpInterface) {
+            return SAMSUNG_CONFIG.copy();
+        }
+
         @Override
         public boolean supportsOAuth() {
             return true;
