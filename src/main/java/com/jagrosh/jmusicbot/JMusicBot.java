@@ -183,8 +183,8 @@ public class JMusicBot
     {
         // instantiate about command
         AboutCommand aboutCommand = new AboutCommand(Color.BLUE.brighter(),
-                                "a music bot that is [easy to host yourself!](https://github.com/jagrosh/MusicBot) (v" + OtherUtil.getCurrentVersion() + ")",
-                                new String[]{"High-quality music playback", "FairQueue™ Technology", "Easy to host yourself"},
+                                "a music bot with Discord DAVE & YouTube TV OAuth [easy to host yourself!](https://github.com/wynoislive/JMusicBot-DAVE) (v" + OtherUtil.getCurrentVersion() + ")",
+                                new String[]{"Native Discord DAVE (E2EE) Voice Support", "YouTube TV OAuth 2.0 Integration", "Ultra-low memory serial GC"},
                                 RECOMMENDED_PERMS);
         aboutCommand.setIsAuthor(false);
         aboutCommand.setReplacementCharacter("\uD83C\uDFB6"); // 🎶

@@ -40,10 +40,10 @@ import org.json.JSONTokener;
  */
 public class OtherUtil
 {
-    public final static String NEW_VERSION_AVAILABLE = "There is a new version of JMusicBot available!\n"
+    public final static String NEW_VERSION_AVAILABLE = "There is a new version of JMusicBot-DAVE available!\n"
                     + "Current version: %s\n"
                     + "New Version: %s\n\n"
-                    + "Please visit https://github.com/jagrosh/MusicBot/releases/latest to get the latest release.";
+                    + "Please visit https://github.com/wynoislive/JMusicBot-DAVE/releases/latest to get the latest release.";
     private final static String WINDOWS_INVALID_PATH = "c:\\windows\\system32\\";
     
     /**
@@ -161,6 +161,17 @@ public class OtherUtil
                     "It appears that you may not be using a supported Java version. Please use 64-bit java.");
     }
     
+    public static boolean isNewVersion(String current, String latest)
+    {
+        if(latest == null || current == null)
+            return false;
+        String cur = current.trim().replaceFirst("^[vV]", "");
+        String lat = latest.trim().replaceFirst("^[vV]", "");
+        if(cur.equalsIgnoreCase(lat) || cur.equalsIgnoreCase("Snapshot") || cur.equalsIgnoreCase("UNKNOWN"))
+            return false;
+        return !cur.equalsIgnoreCase(lat);
+    }
+
     public static void checkVersion(Prompt prompt)
     {
         // Get current version number
@@ -169,7 +180,7 @@ public class OtherUtil
         // Check for new version
         String latestVersion = getLatestVersion();
         
-        if(latestVersion!=null && !latestVersion.equals(version))
+        if(isNewVersion(version, latestVersion))
         {
             prompt.alert(Prompt.Level.WARNING, "JMusicBot Version", String.format(NEW_VERSION_AVAILABLE, version, latestVersion));
         }
@@ -180,7 +191,7 @@ public class OtherUtil
         if(JMusicBot.class.getPackage()!=null && JMusicBot.class.getPackage().getImplementationVersion()!=null)
             return JMusicBot.class.getPackage().getImplementationVersion();
         else
-            return "UNKNOWN";
+            return "1.0.2";
     }
     
     public static String getLatestVersion()
@@ -188,7 +199,7 @@ public class OtherUtil
         try
         {
             Response response = new OkHttpClient.Builder().build()
-                    .newCall(new Request.Builder().get().url("https://api.github.com/repos/jagrosh/MusicBot/releases/latest").build())
+                    .newCall(new Request.Builder().get().url("https://api.github.com/repos/wynoislive/JMusicBot-DAVE/releases/latest").build())
                     .execute();
             ResponseBody body = response.body();
             if(body != null)
