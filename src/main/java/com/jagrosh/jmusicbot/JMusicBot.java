@@ -32,6 +32,8 @@ import java.awt.Color;
 import java.util.Arrays;
 import net.dv8tion.jda.api.*;
 import net.dv8tion.jda.api.entities.Activity;
+import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
+import net.dv8tion.jda.api.hooks.EventListener;
 import net.dv8tion.jda.api.requests.GatewayIntent;
 import net.dv8tion.jda.api.utils.cache.CacheFlag;
 import net.dv8tion.jda.api.exceptions.ErrorResponseException;
@@ -112,6 +114,21 @@ public class JMusicBot
             }
         }
         
+        EventListener safeClient = event -> {
+            if (event instanceof MessageReceivedEvent) {
+                MessageReceivedEvent mre = (MessageReceivedEvent) event;
+                String raw = mre.getMessage().getContentRaw().trim();
+                String selfId = mre.getJDA().getSelfUser().getId();
+                if (raw.equals("<@" + selfId + ">") || raw.equals("<@!" + selfId + ">")) {
+                    mre.getChannel().sendMessage(config.getSuccess() + " Type `" + config.getPrefix() + "help` for a list of commands!").queue();
+                    return;
+                }
+            }
+            if (client instanceof EventListener) {
+                ((EventListener) client).onEvent(event);
+            }
+        };
+
         // attempt to log in and start
         try
         {
@@ -121,7 +138,7 @@ public class JMusicBot
                     .setActivity(config.isGameNone() ? null : Activity.playing("loading..."))
                     .setStatus(config.getStatus()==OnlineStatus.INVISIBLE || config.getStatus()==OnlineStatus.OFFLINE 
                             ? OnlineStatus.INVISIBLE : OnlineStatus.DO_NOT_DISTURB)
-                    .addEventListeners(client, waiter, new Listener(bot))
+                    .addEventListeners(safeClient, waiter, new Listener(bot))
                     .setBulkDeleteSplittingEnabled(true)
                     .setAudioModuleConfig(new net.dv8tion.jda.api.audio.AudioModuleConfig()
                             .withDaveSessionFactory(new moe.kyokobot.libdave.jda.LDJDADaveSessionFactory(new moe.kyokobot.libdave.NativeDaveFactory())))

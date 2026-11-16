@@ -31,9 +31,10 @@ import com.sedmelluq.discord.lavaplayer.source.twitch.TwitchStreamAudioSourceMan
 import com.sedmelluq.discord.lavaplayer.source.vimeo.VimeoAudioSourceManager;
 import com.sedmelluq.discord.lavaplayer.track.playback.NonAllocatingAudioFrameBuffer;
 import dev.lavalink.youtube.YoutubeAudioSourceManager;
+import dev.lavalink.youtube.YoutubeSourceOptions;
 import dev.lavalink.youtube.clients.AndroidVr;
 import dev.lavalink.youtube.clients.Music;
-import dev.lavalink.youtube.clients.TvHtml5Embedded;
+import dev.lavalink.youtube.clients.TvHtml5Simply;
 import dev.lavalink.youtube.clients.Web;
 import dev.lavalink.youtube.clients.WebEmbedded;
 import dev.lavalink.youtube.clients.skeleton.Client;
@@ -65,15 +66,23 @@ public class PlayerManager extends DefaultAudioPlayerManager
 
         TransformativeAudioSourceManager.createTransforms(bot.getConfig().getTransforms()).forEach(t -> registerSourceManager(t));
 
-        // Configure modern YouTube source with OAuth-compatible TV & Web clients
+        // Configure modern YouTube source with remote cipher and OAuth-compatible clients
+        YoutubeSourceOptions options = new YoutubeSourceOptions();
+        options.setAllowSearch(true);
+        String remoteCipherUrl = bot.getConfig().getRemoteCipherUrl();
+        if (remoteCipherUrl != null && !remoteCipherUrl.trim().isEmpty()) {
+            options.setRemoteCipher(remoteCipherUrl.trim(), null, "JMusicBot-DAVE");
+            LoggerFactory.getLogger("JMusicBot").info("YouTube Remote Cipher: Configured with endpoint " + remoteCipherUrl.trim());
+        }
+
         Client[] clients = new Client[] {
             new Music(),
-            new TvHtml5Embedded(),
+            new TvHtml5Simply(),
             new AndroidVr(),
             new Web(),
             new WebEmbedded()
         };
-        YoutubeAudioSourceManager yt = new YoutubeAudioSourceManager(true, clients);
+        YoutubeAudioSourceManager yt = new YoutubeAudioSourceManager(options, clients);
         yt.setPlaylistPageCount(bot.getConfig().getMaxYTPlaylistPages());
 
         // YouTube OAuth 2.0 device authorization flow with auto-save

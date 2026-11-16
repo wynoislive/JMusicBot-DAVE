@@ -2,13 +2,11 @@ _comment: 'DO NOT EDIT: FILE GENERATED AUTOMATICALLY BY PANEL'
 meta:
   version: PLCN_v3
   update_url: null
-exported_at: '2026-11-16T06:10:00+00:00'
+exported_at: '2026-11-16T06:40:00+00:00'
 name: 'JMusicBot-DAVE'
 author: custom@jmusicbot.local
 uuid: e90f4b6d-e86b-4a0b-8fbb-6f8f2249c7a1
-description: |-
-  A 100% pure Java standalone Discord music bot with native Discord DAVE (E2EE) voice protocol support,
-  YouTube TV OAuth 2.0 device authorization, and low-memory serial garbage collection.
+description: 'A 100% pure Java standalone Discord music bot with native Discord DAVE (E2EE) voice protocol support, YouTube TV OAuth 2.0 device authorization, and low-memory serial garbage collection.'
 tags:
   - discord
   - music
@@ -50,269 +48,197 @@ scripts:
   installation:
     script: |-
       #!/bin/bash
-      apt-get update
-      apt-get install -y jq curl ca-certificates
-
       mkdir -p /mnt/server
       cd /mnt/server
 
-      echo "=========================================================="
-      echo " Installing JMusicBot-DAVE..."
-      echo "=========================================================="
-
       TARGET_REPO="${GITHUB_REPO:-wynoislive/JMusicBot-DAVE}"
-      echo "Target GitHub Repository: ${TARGET_REPO}"
+      echo "Fetching latest release from ${TARGET_REPO}..."
 
-      # Fetch latest release information
-      LATEST_JSON=$(curl -s "https://api.github.com/repos/${TARGET_REPO}/releases/latest")
-      DOWNLOAD_URL=$(echo "${LATEST_JSON}" | jq -r '.assets[] | select(.name | endswith(".jar")) | .browser_download_url' | head -n 1)
+      DOWNLOAD_URL=$(curl -sL "https://api.github.com/repos/${TARGET_REPO}/releases/latest" | grep -o '"browser_download_url": *"[^"]*\.jar"' | head -n 1 | sed -e 's/"browser_download_url": *"//' -e 's/"//')
 
-      # Fallback to noxianwill/MusicBot if target repo has no release yet
-      if [ -z "${DOWNLOAD_URL}" ] || [ "${DOWNLOAD_URL}" = "null" ]; then
-          echo "Target repo release not found yet. Falling back to primary DAVE-fixed release..."
+      if [ -z "${DOWNLOAD_URL}" ]; then
+          echo "Falling back to direct latest release URL..."
+          DOWNLOAD_URL="https://github.com/${TARGET_REPO}/releases/latest/download/JMusicBot.jar"
+      fi
+
+      if [ -z "${DOWNLOAD_URL}" ]; then
+          echo "Falling back to primary DAVE-fixed release..."
           DOWNLOAD_URL="https://github.com/noxianwill/MusicBot/releases/download/v0.4.3-1.0-fixed/JMusicBot-0.4.3-fix1.0.jar"
       fi
 
       echo "Downloading JMusicBot JAR from: ${DOWNLOAD_URL}"
-      curl -L -o JMusicBot.jar "${DOWNLOAD_URL}"
+      curl -fL -o JMusicBot.jar "${DOWNLOAD_URL}"
 
-      # Generate default config.txt if not present
       if [ ! -f "config.txt" ]; then
-          echo "Generating default config.txt..."
-          cat << 'EOF' > config.txt
-/// START OF JMUSICBOT CONFIG ///
-token = BOT_TOKEN_HERE
-owner = 0
-prefix = "!"
-game = "DEFAULT"
-status = ONLINE
-songinstatus = false
-altprefix = "NONE"
-success = "🎶"
-warning = "💡"
-error = "🚫"
-loading = "⌛"
-searching = "🔎"
-help = help
-npimages = false
-stayinchannel = false
-maxtime = 0
-maxytplaylistpages = 10
-skipratio = 0.55
-alonetimeuntilstop = 0
-playlistsfolder = "Playlists"
-updatealerts = true
-lyrics.default = "A-Z Lyrics"
-loglevel = info
-eval = false
-useytoauth = true
-ytoauth = ""
-remotecipherurl = "https://kikkia.dev"
-/// END OF JMUSICBOT CONFIG ///
-EOF
+          printf '%s\n' \
+            '/// START OF JMUSICBOT CONFIG ///' \
+            'token = BOT_TOKEN_HERE' \
+            'owner = 0' \
+            'prefix = "!"' \
+            'game = "DEFAULT"' \
+            'status = ONLINE' \
+            'songinstatus = false' \
+            'altprefix = "NONE"' \
+            'success = "🎶"' \
+            'warning = "💡"' \
+            'error = "🚫"' \
+            'loading = "⌛"' \
+            'searching = "🔎"' \
+            'help = help' \
+            'npimages = false' \
+            'stayinchannel = false' \
+            'maxtime = 0' \
+            'maxytplaylistpages = 10' \
+            'skipratio = 0.55' \
+            'alonetimeuntilstop = 0' \
+            'playlistsfolder = "Playlists"' \
+            'updatealerts = true' \
+            'lyrics.default = "A-Z Lyrics"' \
+            'loglevel = info' \
+            'eval = false' \
+            'useytoauth = true' \
+            'ytoauth = ""' \
+            'remotecipherurl = "https://kikkia.dev"' \
+            '/// END OF JMUSICBOT CONFIG ///' > config.txt
       fi
 
       mkdir -p Playlists
-      if [ ! -f "Playlists/example_playlist.txt" ]; then
-          cat << 'EOF' > Playlists/example_playlist.txt
-# Example Playlist for JMusicBot
-https://www.youtube.com/watch?v=dQw4w9WgXcQ
-EOF
-      fi
-
-      chown -R 1000:1000 /mnt/server
       echo "Installation complete!"
-    container: 'ghcr.io/pterodactyl/yolks:java_17'
+    container: 'ghcr.io/pterodactyl/installers:debian'
     entrypoint: bash
 variables:
   -
     sort: 1
     name: '[REQUIRED] Discord Bot Token'
-    description: |-
-      The token for your Discord bot from Discord Developer Portal.
-      Get a token here: https://discord.com/developers/applications
+    description: 'The token for your Discord bot from Discord Developer Portal. Get a token here: https://discord.com/developers/applications'
     env_variable: BOT_TOKEN
     default_value: ''
     user_viewable: true
     user_editable: true
-    rules:
-      - required
-      - string
+    rules: 'required|string'
   -
     sort: 2
     name: '[REQUIRED] Bot Owner User ID'
-    description: |-
-      The Discord User ID of the bot owner (17-20 digit number).
-      Enable Developer Mode in Discord, right click your profile, and select 'Copy User ID'.
+    description: 'The Discord User ID of the bot owner (17-20 digit number). Enable Developer Mode in Discord, right click your profile, and select Copy User ID.'
     env_variable: BOT_OWNER
     default_value: ''
     user_viewable: true
     user_editable: true
-    rules:
-      - required
-      - string
-      - 'digits_between:17,20'
+    rules: 'required|digits_between:17,20'
   -
     sort: 3
     name: 'Command Prefix'
-    description: |-
-      The prefix used to trigger commands (e.g. !play, ?play).
+    description: 'The prefix used to trigger commands (e.g. !play, ?play).'
     env_variable: BOT_PREFIX
     default_value: '!'
     user_viewable: true
     user_editable: true
-    rules:
-      - required
-      - string
+    rules: 'required|string'
   -
     sort: 4
     name: 'Enable YouTube TV OAuth Login'
-    description: |-
-      When true and no refresh token is saved, the bot prints a device code (https://google.com/device)
-      on startup. Once linked, the token is automatically saved to youtube_oauth_token.txt.
+    description: 'When true and no refresh token is saved, the bot prints a device code (https://google.com/device) on startup. Once linked, the token is automatically saved to youtube_oauth_token.txt.'
     env_variable: USE_YT_OAUTH
     default_value: 'true'
     user_viewable: true
     user_editable: true
-    rules:
-      - required
-      - string
-      - 'in:true,false'
+    rules: 'required|string|in:true,false'
   -
     sort: 5
     name: 'YouTube OAuth Refresh Token'
-    description: |-
-      Optional saved YouTube OAuth refresh token (e.g. 1//...).
-      Leave blank to let the bot auto-prompt and auto-save on boot.
+    description: 'Optional saved YouTube OAuth refresh token (e.g. 1//...). Leave blank to let the bot auto-prompt and auto-save on boot.'
     env_variable: YT_REFRESH_TOKEN
     default_value: ''
     user_viewable: true
     user_editable: true
-    rules:
-      - nullable
-      - string
+    rules: 'nullable|string'
   -
     sort: 6
     name: 'Remote Cipher Endpoint'
-    description: |-
-      Remote endpoint to decrypt restricted YouTube player signatures.
-      Automatically falls back to local cipher solving if unavailable.
+    description: 'Remote endpoint to decrypt restricted YouTube player signatures. Automatically falls back to local cipher solving if unavailable.'
     env_variable: REMOTE_CIPHER_URL
     default_value: 'https://kikkia.dev'
     user_viewable: true
     user_editable: true
-    rules:
-      - required
-      - string
+    rules: 'required|string'
   -
     sort: 7
     name: 'GitHub Repository for Updates'
-    description: |-
-      GitHub repository in owner/repo format for fetching JMusicBot-DAVE releases.
+    description: 'GitHub repository in owner/repo format for fetching JMusicBot-DAVE releases.'
     env_variable: GITHUB_REPO
     default_value: 'wynoislive/JMusicBot-DAVE'
     user_viewable: true
     user_editable: true
-    rules:
-      - required
-      - string
+    rules: 'required|string'
   -
     sort: 8
     name: 'Bot Presence Status'
-    description: |-
-      Online status of the bot in Discord.
+    description: 'Online status of the bot in Discord.'
     env_variable: BOT_STATUS
     default_value: ONLINE
     user_viewable: true
     user_editable: true
-    rules:
-      - required
-      - string
-      - 'in:ONLINE,IDLE,DND,INVISIBLE'
+    rules: 'required|string|in:ONLINE,IDLE,DND,INVISIBLE'
   -
     sort: 9
     name: 'Bot Game / Activity'
-    description: |-
-      Activity message displayed on the bot's Discord profile.
+    description: 'Activity message displayed on the bots Discord profile.'
     env_variable: BOT_GAME
     default_value: DEFAULT
     user_viewable: true
     user_editable: true
-    rules:
-      - required
-      - string
+    rules: 'required|string'
   -
     sort: 10
     name: 'Show Song in Status'
-    description: |-
-      If set to true, displays currently playing song in the bot's status (single-server only).
+    description: 'If set to true, displays currently playing song in the bots status (single-server only).'
     env_variable: BOT_SONG_STATUS
     default_value: 'false'
     user_viewable: true
     user_editable: true
-    rules:
-      - required
-      - string
-      - 'in:true,false'
+    rules: 'required|string|in:true,false'
   -
     sort: 11
     name: 'Alternative Prefix'
-    description: |-
-      Optional second prefix that the bot also responds to (or NONE).
+    description: 'Optional second prefix that the bot also responds to (or NONE).'
     env_variable: BOT_ALT_PREFIX
     default_value: NONE
     user_viewable: true
     user_editable: true
-    rules:
-      - required
-      - string
+    rules: 'required|string'
   -
     sort: 12
     name: 'Stay In Voice Channel'
-    description: |-
-      If set to true, the bot will not leave the voice channel after queue finishes.
+    description: 'If set to true, the bot will not leave the voice channel after queue finishes.'
     env_variable: BOT_STAY_IN_CHANNEL
     default_value: 'false'
     user_viewable: true
     user_editable: true
-    rules:
-      - required
-      - string
-      - 'in:true,false'
+    rules: 'required|string|in:true,false'
   -
     sort: 13
     name: 'Max Track Length (Seconds)'
-    description: |-
-      Maximum length in seconds for any queued track (0 for unlimited).
+    description: 'Maximum length in seconds for any queued track (0 for unlimited).'
     env_variable: BOT_MAXTIME
-    default_value: 0
+    default_value: '0'
     user_viewable: true
     user_editable: true
-    rules:
-      - required
-      - numeric
+    rules: 'required|numeric'
   -
     sort: 14
     name: 'Alone Timeout (Seconds)'
-    description: |-
-      Seconds before leaving if everyone else leaves the voice channel (0 to disable).
+    description: 'Seconds before leaving if everyone else leaves the voice channel (0 to disable).'
     env_variable: BOT_ALONE_TIME
-    default_value: 0
+    default_value: '0'
     user_viewable: true
     user_editable: true
-    rules:
-      - required
-      - numeric
+    rules: 'required|numeric'
   -
     sort: 15
     name: 'Show Thumbnails In Now Playing'
-    description: |-
-      If true, displays song thumbnails in the nowplaying command embed.
+    description: 'If true, displays song thumbnails in the nowplaying command embed.'
     env_variable: BOT_NPIMAGES
     default_value: 'false'
     user_viewable: true
     user_editable: true
-    rules:
-      - required
-      - string
-      - 'in:true,false'
+    rules: 'required|string|in:true,false'
