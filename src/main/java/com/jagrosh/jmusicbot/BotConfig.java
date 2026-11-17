@@ -98,7 +98,7 @@ public class BotConfig
             maxYTPlaylistPages = config.getInt("maxytplaylistpages");
             useytoauth = config.hasPath("useytoauth") ? config.getBoolean("useytoauth") : (System.getenv("USE_YT_OAUTH") != null ? Boolean.parseBoolean(System.getenv("USE_YT_OAUTH")) : (System.getenv("YT_OAUTH_ENABLED") != null ? Boolean.parseBoolean(System.getenv("YT_OAUTH_ENABLED")) : true));
             ytoauth = config.hasPath("ytoauth") ? config.getString("ytoauth") : (System.getenv("YT_REFRESH_TOKEN") != null ? System.getenv("YT_REFRESH_TOKEN") : "");
-            remoteCipherUrl = config.hasPath("remotecipherurl") ? config.getString("remotecipherurl") : (System.getenv("REMOTE_CIPHER_URL") != null ? System.getenv("REMOTE_CIPHER_URL") : "");
+            remoteCipherUrl = config.hasPath("remotecipherurl") ? config.getString("remotecipherurl") : (System.getenv("REMOTE_CIPHER_URL") != null ? System.getenv("REMOTE_CIPHER_URL") : "https://cipher.kikkia.dev");
             aloneTimeUntilStop = config.getLong("alonetimeuntilstop");
             playlistsFolder = config.getString("playlistsfolder");
             aliases = config.getConfig("aliases");

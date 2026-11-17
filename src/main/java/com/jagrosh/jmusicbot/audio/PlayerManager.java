@@ -74,13 +74,17 @@ public class PlayerManager extends DefaultAudioPlayerManager
         YoutubeSourceOptions options = new YoutubeSourceOptions();
         options.setAllowSearch(true);
         String remoteCipherUrl = bot.getConfig().getRemoteCipherUrl();
-        if (remoteCipherUrl != null && !remoteCipherUrl.trim().isEmpty()) {
-            if (remoteCipherUrl.contains("kikkia.dev")) {
-                LoggerFactory.getLogger("JMusicBot").warn("YouTube Remote Cipher: kikkia.dev is currently unreachable. Falling back to local cipher manager.");
-            } else {
-                options.setRemoteCipher(remoteCipherUrl.trim(), null, "JMusicBot-DAVE");
-                LoggerFactory.getLogger("JMusicBot").info("YouTube Remote Cipher: Configured with endpoint " + remoteCipherUrl.trim());
-            }
+        if (remoteCipherUrl == null || remoteCipherUrl.trim().isEmpty()
+                || remoteCipherUrl.trim().equalsIgnoreCase("https://kikkia.dev")
+                || remoteCipherUrl.trim().equalsIgnoreCase("http://kikkia.dev")
+                || remoteCipherUrl.trim().equalsIgnoreCase("kikkia.dev")) {
+            remoteCipherUrl = "https://cipher.kikkia.dev";
+        }
+        try {
+            options.setRemoteCipher(remoteCipherUrl.trim(), null, "JMusicBot-DAVE");
+            LoggerFactory.getLogger("JMusicBot").info("YouTube Remote Cipher: Configured with endpoint " + remoteCipherUrl.trim());
+        } catch (Exception e) {
+            LoggerFactory.getLogger("JMusicBot").warn("YouTube Remote Cipher configuration failed: " + e.getMessage());
         }
 
         // Patch static BASE_CONFIG on Tv to bypass Cobalt User-Agent filtering (PR #233)
