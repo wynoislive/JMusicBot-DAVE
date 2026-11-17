@@ -45,6 +45,7 @@ jobs:
           files: |
             JMusicBot.jar
             JMusicBot.jar.sha256
+            egg-jmusicbot-dave.yaml
           draft: false
           prerelease: false
           generate_release_notes: true
